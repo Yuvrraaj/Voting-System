@@ -1,0 +1,4 @@
+C:/Users/PC/Desktop/OnlineVotingSystem/build/CMakeFiles/VotingServer.dir
+C:/Users/PC/Desktop/OnlineVotingSystem/build/CMakeFiles/VotingClient.dir
+C:/Users/PC/Desktop/OnlineVotingSystem/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/PC/Desktop/OnlineVotingSystem/build/CMakeFiles/ZERO_CHECK.dir
