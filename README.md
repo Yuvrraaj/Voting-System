@@ -29,9 +29,3 @@ To compile and run this project on a Windows machine, you need:
 2.  **CMake:** Version 3.10 or higher.
 3.  **OpenSSL for Windows:** Installed in `C:\Program Files\OpenSSL-Win64` (Standard pre-compiled Win64 binaries).
 
-## 🏗️ Build Instructions
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/yourusername/OnlineVotingSystem.git](https://github.com/yourusername/OnlineVotingSystem.git)
-   cd OnlineVotingSystem
