@@ -240,7 +240,7 @@ cmake --build . --config Release
 Starting the Server
 
 Run the server executable:
-```bash VotingServer.exe ```
+``` VotingServer.exe ```
 The server will automatically:
 
 Initialize the election database
@@ -253,7 +253,7 @@ Running the Client
 
 Run the client executable:
 
-```bash VotingClient.exe ```
+``` VotingClient.exe ```
 
 The client interface allows users to perform the following actions:
 
