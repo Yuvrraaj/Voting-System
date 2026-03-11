@@ -236,57 +236,59 @@ Compile the Project
 cmake --build . --config Release
 ```
 
-▶️ Running the System
-Starting the Server
+## ▶️ Running the System
+
+### Starting the Server
 
 Run the server executable:
-``` VotingServer.exe ```
+
+
+VotingServer.exe
+
+
 The server will automatically:
 
-Initialize the election database
+- Initialize the election database  
+- Load candidate data  
+- Begin listening for incoming connections on **Port 8080**
 
-Load candidate data
+---
 
-Begin listening for incoming connections on port 8080
-
-Running the Client
+### Running the Client
 
 Run the client executable:
 
-``` VotingClient.exe ```
+
+VotingClient.exe
+
 
 The client interface allows users to perform the following actions:
 
-Register a voter account
+- Register a voter account  
+- Login using voter credentials  
+- View available candidates  
+- Cast votes securely  
+- Access administrator services using the secret key
 
-Login using voter credentials
+---
 
-View available candidates
-
-Cast votes securely
-
-Access administrator services (with secret key)
-
-🎯 Learning Objectives
+## 🎯 Learning Objectives
 
 This project demonstrates practical experience with:
 
-Systems programming using C++
+- Systems programming using **C++**
+- Low level **socket networking**
+- **Multi-threaded server architecture**
+- **Cryptographic security implementation**
+- **Database integration with SQLite**
+- **Cloud infrastructure deployment using AWS**
 
-Low level socket networking
+---
 
-Multi threaded server architecture
+## 👨‍💻 Author
 
-Cryptographic security implementation
+**Yuvraj Jha**  
+Computer Science Student  
+Vellore Institute of Technology  
 
-Database integration
-
-Cloud infrastructure deployment
-
-👨‍💻 Author
-
-Yuvraj Jha
-Computer Science Student
-Vellore Institute of Technology
-
-This project was developed as a systems engineering demonstration of a secure distributed voting platform built using C++.
+This project was developed as a **systems engineering demonstration of a secure distributed 
