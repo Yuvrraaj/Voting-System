@@ -291,4 +291,4 @@ This project demonstrates practical experience with:
 Computer Science Student  
 Vellore Institute of Technology  
 
-This project was developed as a **systems engineering demonstration of a secure distributed 
+This project was developed as a **systems engineering demonstration of a secure distributed voting platform built using C++**.
