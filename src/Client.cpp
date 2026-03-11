@@ -7,6 +7,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+// Helper to handle all server communications
 std::string sendToServer(const std::string& message) {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -15,7 +16,7 @@ std::string sendToServer(const std::string& message) {
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(8080);
-    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+    inet_pton(AF_INET, "13.53.40.47", &serverAddr.sin_addr);
 
     if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
         return "ERROR: Could not connect to server.";
@@ -23,7 +24,7 @@ std::string sendToServer(const std::string& message) {
 
     send(clientSocket, message.c_str(), static_cast<int>(message.length()), 0);
     
-    char buffer[4096] = {0}; // Increased buffer to catch large statistic reports
+    char buffer[4096] = {0}; 
     recv(clientSocket, buffer, 4096, 0);
     
     closesocket(clientSocket);
@@ -42,8 +43,18 @@ int getValidIntInput() {
     return input;
 }
 
-// --- RESTORED ADMIN MENU ---
 void adminMenu() {
+    // --- FIX 1: ADDING AN ADMIN ACCESS KEY ---
+    std::string secretKey;
+    std::cout << "CRITICAL: Enter Admin Secret Key to proceed: ";
+    std::cin >> secretKey;
+
+    // This key should match a hardcoded key in your Server.cpp for true security
+    if (secretKey != "VITAP_ADMIN_2026") { 
+        std::cout << "ACCESS DENIED: Invalid Admin Key.\n";
+        return; 
+    }
+
     int choice;
     while (true) {
         std::cout << "\n--- Remote Admin Panel ---\n";
@@ -74,7 +85,7 @@ void adminMenu() {
         } else if (choice == 4) {
             std::cout << sendToServer("ADMIN|GRAPHICS") << "\n";
         } else if (choice == 5) {
-            std::cout << "Are you absolutely sure? This will delete all current votes! (y/n): ";
+            std::cout << "Are you absolutely sure? (y/n): ";
             char confirm;
             std::cin >> confirm;
             if (confirm == 'y' || confirm == 'Y') {
@@ -82,20 +93,17 @@ void adminMenu() {
             }
         } else if (choice == 6) {
             break;
-        } else {
-            std::cout << "Invalid choice.\n";
         }
     }
 }
-// ---------------------------
 
 int main() {
     int choice;
     while (true) {
-        std::cout << "\n--- Voter Terminal (Network Client) ---\n";
-        std::cout << "1. Register\n";
-        std::cout << "2. Login and Vote\n";
-        std::cout << "3. Admin Panel\n";
+        std::cout << "\n--- VIT-AP Online Voting System ---\n";
+        std::cout << "1. Register New Voter\n";
+        std::cout << "2. Login and Cast Vote\n";
+        std::cout << "3. Admin Services (Restricted)\n";
         std::cout << "4. Exit\n";
         std::cout << "Enter choice: ";
         choice = getValidIntInput();
@@ -104,8 +112,7 @@ int main() {
             std::string pass;
             std::cout << "Create a Password: ";
             std::cin >> pass;
-            std::string response = sendToServer("REGISTER|" + pass);
-            std::cout << "Server Response: " << response << "\n";
+            std::cout << "Server Response: " << sendToServer("REGISTER|" + pass) << "\n";
         } 
         else if (choice == 2) {
             std::string id, pass, candidate;
@@ -113,19 +120,27 @@ int main() {
             std::cin >> id;
             std::cout << "Enter Password: ";
             std::cin >> pass;
-            std::cout << "Enter Candidate Exact Name: ";
-            std::cin.ignore();
-            std::getline(std::cin, candidate);
 
-            std::string payload = "VOTE|" + id + "|" + pass + "|" + candidate;
-            std::string response = sendToServer(payload);
-            std::cout << "Server Response: " << response << "\n";
+            // --- FIX 2: FETCH CANDIDATES BEFORE VOTING ---
+            std::cout << "\n--- Fetching Available Candidates ---\n";
+            std::string candidateList = sendToServer("GET_CANDIDATES");
+            std::cout << candidateList << "\n";
+
+            if (candidateList.find("ERROR") != std::string::npos || candidateList.empty()) {
+                std::cout << "Could not retrieve candidate list. Please contact Admin.\n";
+            } else {
+                std::cout << "Enter Candidate Name exactly as shown above: ";
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::getline(std::cin, candidate);
+
+                std::string response = sendToServer("VOTE|" + id + "|" + pass + "|" + candidate);
+                std::cout << "Server Response: " << response << "\n";
+            }
         } 
         else if (choice == 3) {
             adminMenu();
         }
         else if (choice == 4) {
-            std::cout << "Closing connection...\n";
             break;
         }
     }

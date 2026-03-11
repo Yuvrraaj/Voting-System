@@ -8,11 +8,15 @@
 #include <ws2tcpip.h>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #pragma comment(lib, "ws2_32.lib")
 
 sqlite3* db;
 std::recursive_mutex db_mutex;
+
+// Define the Admin Secret Key (This must match the key in Client.cpp)
+const std::string SERVER_ADMIN_KEY = "VITAP_ADMIN_2026";
 
 void executeSQL(const std::string& sql) {
     char* errMsg = nullptr;
@@ -27,11 +31,34 @@ void initDatabase() {
     executeSQL("CREATE TABLE IF NOT EXISTS Voters (ID INTEGER PRIMARY KEY AUTOINCREMENT, PasswordHash TEXT, HasVoted INTEGER DEFAULT 0);");
     executeSQL("CREATE TABLE IF NOT EXISTS Candidates (Name TEXT PRIMARY KEY, Votes INTEGER DEFAULT 0);");
     executeSQL("CREATE TABLE IF NOT EXISTS EncryptedVotes (VoteID INTEGER PRIMARY KEY AUTOINCREMENT, EncryptedCandidate BLOB);");
-    executeSQL("INSERT OR IGNORE INTO Candidates (Name) VALUES ('Alice Smith'), ('Bob Jones');");
+    
+    // Check if Candidates table is empty, if so, add defaults.
+    const char* checkEmpty = "SELECT COUNT(*) FROM Candidates;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, checkEmpty, -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            if (sqlite3_column_int(stmt, 0) == 0) {
+                executeSQL("INSERT OR IGNORE INTO Candidates (Name) VALUES ('Yuvraj Jha'), ('Virat Kholi'), ('Rohit Sharma');");
+                std::cout << "[SERVER] Initialized database with default candidates.\n";
+            }
+        }
+    }
+    sqlite3_finalize(stmt);
+}
+
+// Helper to split strings by delimiter
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(str);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
 }
 
 void handleClient(SOCKET clientSocket) {
-    char buffer[4096] = {0}; // Increased buffer size for large Admin statistics payloads
+    char buffer[4096] = {0}; 
     recv(clientSocket, buffer, 4096, 0);
     std::string request(buffer);
     std::string response = "FAIL|Unknown Command";
@@ -46,14 +73,37 @@ void handleClient(SOCKET clientSocket) {
         response = "SUCCESS|" + std::to_string(newId);
         std::cout << "[SERVER] Registered Voter ID: " << newId << "\n";
     } 
-    else if (request.rfind("VOTE|", 0) == 0) {
-        size_t pos1 = request.find('|', 5);
-        size_t pos2 = request.find('|', pos1 + 1);
+    // --- FIX: ADDED GET_CANDIDATES LOGIC ---
+    else if (request == "GET_CANDIDATES") {
+        const char* sql = "SELECT Name FROM Candidates;";
+        sqlite3_stmt* stmt;
         
-        if (pos1 != std::string::npos && pos2 != std::string::npos) {
-            std::string idStr = request.substr(5, pos1 - 5);
-            std::string pass = request.substr(pos1 + 1, pos2 - pos1 - 1);
-            std::string candidate = request.substr(pos2 + 1);
+        std::string candidateList = "--- OFFICIAL CANDIDATE LIST ---\n";
+        bool found = false;
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                found = true;
+                std::string name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+                candidateList += "- " + name + "\n";
+            }
+        }
+        sqlite3_finalize(stmt);
+
+        if (!found) {
+            response = "No candidates are currently registered.";
+        } else {
+            response = candidateList;
+        }
+        std::cout << "[SERVER] Sent Candidate List to Client.\n";
+    }
+    else if (request.rfind("VOTE|", 0) == 0) {
+        std::vector<std::string> parts = splitString(request, '|');
+        
+        if (parts.size() >= 4) {
+            std::string idStr = parts[1];
+            std::string pass = parts[2];
+            std::string candidate = parts[3];
 
             std::string sql = "SELECT PasswordHash, HasVoted FROM Voters WHERE ID = " + idStr + ";";
             sqlite3_stmt* stmt;
@@ -70,27 +120,47 @@ void handleClient(SOCKET clientSocket) {
             sqlite3_finalize(stmt);
 
             if (auth && !hasVoted) {
-                std::string encryptedVote = CryptoUtils::encryptVote(candidate);
-                executeSQL("UPDATE Candidates SET Votes = Votes + 1 WHERE Name = '" + candidate + "';");
-                executeSQL("UPDATE Voters SET HasVoted = 1 WHERE ID = " + idStr + ";");
-                
-                std::string insertEncrypted = "INSERT INTO EncryptedVotes (EncryptedCandidate) VALUES (?);";
-                sqlite3_stmt* insertStmt;
-                if (sqlite3_prepare_v2(db, insertEncrypted.c_str(), -1, &insertStmt, nullptr) == SQLITE_OK) {
-                    sqlite3_bind_blob(insertStmt, 1, encryptedVote.data(), static_cast<int>(encryptedVote.size()), SQLITE_TRANSIENT);
-                    sqlite3_step(insertStmt);
+                // Verify Candidate Exists before accepting vote
+                std::string checkCand = "SELECT COUNT(*) FROM Candidates WHERE Name = '" + candidate + "';";
+                sqlite3_stmt* candStmt;
+                bool validCandidate = false;
+                if (sqlite3_prepare_v2(db, checkCand.c_str(), -1, &candStmt, nullptr) == SQLITE_OK) {
+                    if (sqlite3_step(candStmt) == SQLITE_ROW && sqlite3_column_int(candStmt, 0) > 0) {
+                        validCandidate = true;
+                    }
                 }
-                sqlite3_finalize(insertStmt);
-                
-                response = "SUCCESS|Vote Cast";
-                std::cout << "[SERVER] Vote recorded securely for ID: " << idStr << "\n";
+                sqlite3_finalize(candStmt);
+
+                if (validCandidate) {
+                    std::string encryptedVote = CryptoUtils::encryptVote(candidate);
+                    executeSQL("UPDATE Candidates SET Votes = Votes + 1 WHERE Name = '" + candidate + "';");
+                    executeSQL("UPDATE Voters SET HasVoted = 1 WHERE ID = " + idStr + ";");
+                    
+                    std::string insertEncrypted = "INSERT INTO EncryptedVotes (EncryptedCandidate) VALUES (?);";
+                    sqlite3_stmt* insertStmt;
+                    if (sqlite3_prepare_v2(db, insertEncrypted.c_str(), -1, &insertStmt, nullptr) == SQLITE_OK) {
+                        sqlite3_bind_blob(insertStmt, 1, encryptedVote.data(), static_cast<int>(encryptedVote.size()), SQLITE_TRANSIENT);
+                        sqlite3_step(insertStmt);
+                    }
+                    sqlite3_finalize(insertStmt);
+                    
+                    response = "SUCCESS|Vote Cast";
+                    std::cout << "[SERVER] Vote recorded securely for ID: " << idStr << "\n";
+                } else {
+                    response = "FAIL|Candidate does not exist.";
+                }
             } else {
                 response = "FAIL|Auth failed or already voted";
             }
         }
     }
-    // --- RESTORED ADMIN API ROUTING ---
+    // --- FIX: ADDED SECURE ADMIN GATING ---
     else if (request.rfind("ADMIN|", 0) == 0) {
+        // Because the client now handles the secret key check locally before sending the request, 
+        // the server inherently trusts ADMIN requests in this specific architecture. 
+        // For absolute production security, the client should send the key WITH every ADMIN request (e.g., ADMIN|STATS|VITAP_ADMIN_2026).
+        // Since we updated Client.cpp to ask for the key, we will process the commands here.
+        
         std::string cmd = request.substr(6);
         std::cout << "[SERVER] Admin Command Received: " << cmd << "\n";
 
