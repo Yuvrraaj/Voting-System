@@ -1,31 +1,282 @@
-# Secure Distributed Online Voting System
+# Secure C++ Online Voting System
 
-A highly secure, multithreaded client-server voting application built natively in C++17. This project demonstrates enterprise-grade systems engineering by integrating network socket programming, embedded relational databases, and cryptographic data protection.
+An enterprise grade multi threaded client server voting application built in C++17.  
+The system demonstrates low level network programming cryptographic security concurrent database handling and cloud deployment.
+
+The project simulates a real world electronic election environment where voters interact with a client application that communicates securely with a centralized voting server.
+
+The system has been deployed on AWS EC2 to demonstrate distributed infrastructure and real world networking.
 
 
+# System Architecture
 
-## 🚀 Key Features
+The application follows a client server architecture.
 
-* **Client-Server Architecture:** Decoupled architecture using native Windows Sockets (Winsock2) over TCP/IP for real-time remote voting.
-* **Multithreaded Backend:** Utilizes `std::thread` to handle multiple concurrent client connections, preventing network bottlenecks.
-* **Thread-Safe Database Engine:** Integrates the SQLite amalgamation engine. Uses `std::recursive_mutex` to create critical sections, completely eliminating race conditions and data corruption during highly concurrent voting loads.
-* **Advanced Cryptography (OpenSSL):**
-    * **Authentication:** Passwords are mathematically hashed using SHA-256 before storage.
-    * **Payload Security:** Cast votes are symmetrically encrypted using AES-256-CBC before being written to the database.
-* **Cybersecurity Defenses:** * **SQL Injection Prevention:** Utilizes strictly bound Prepared Statements for all database insertions.
-    * **Brute-Force Protection:** Intelligent account lockout logic triggers after 3 failed authentication attempts.
-* **Remote Admin API:** Administrators can securely request live election statistics, ASCII graphical visual charts, add/remove candidates, and execute database resets over the network socket.
+Client Application  
+Handles user interaction registration authentication and vote casting.
 
-## 🛠️ Technology Stack
-* **Language:** C++17
-* **Networking:** Winsock2 (`ws2_32`)
-* **Database:** SQLite 3 (Embedded Amalgamation)
-* **Cryptography:** OpenSSL (EVP API)
-* **Build System:** CMake
+Server Application  
+Acts as the central election authority responsible for authentication encryption and database operations.
 
-## ⚙️ Prerequisites
-To compile and run this project on a Windows machine, you need:
-1.  **C++17 Compiler:** MSVC (Visual Studio) or MinGW.
-2.  **CMake:** Version 3.10 or higher.
-3.  **OpenSSL for Windows:** Installed in `C:\Program Files\OpenSSL-Win64` (Standard pre-compiled Win64 binaries).
+Client communicates with the server through TCP socket communication.
 
+
+# Client Responsibilities
+
+User registration
+
+User authentication
+
+Secure vote submission
+
+Fetching candidate list from the server
+
+Communication with server using Winsock2 TCP sockets
+
+
+# Server Responsibilities
+
+Accepting client connections
+
+Handling multiple clients using multi threading
+
+Processing authentication requests
+
+Encrypting ballots before storage
+
+Managing election database and statistics
+
+
+# Key Features
+
+# Multi Threaded Server
+
+The server spawns dedicated threads for every incoming TCP connection.
+
+This ensures that multiple voters can interact with the system simultaneously without blocking other users.
+
+Technologies used
+
+C++ threads  
+recursive mutex for thread safe operations
+
+
+# End To End Cryptography
+
+The system integrates OpenSSL to provide cryptographic security.
+
+Passwords are never stored in plain text.
+
+Password flow
+
+Password entered by user  
+Converted to SHA 256 hash  
+Stored securely in the database
+
+This ensures zero knowledge password storage.
+
+
+# Vote Encryption
+
+Ballots are encrypted using AES 256 encryption before being stored in the database.
+
+This guarantees
+
+Vote confidentiality  
+Protection against database compromise  
+Secure ballot storage
+
+
+# Role Based Access Control
+
+The system separates privileges between voters and administrators.
+
+Voter capabilities
+
+Register account  
+Login  
+Cast vote
+
+Administrator capabilities
+
+View election statistics  
+Add or remove candidates  
+Reset election
+
+Administrative operations require a server validated master secret key.
+
+
+# Persistent Database Storage
+
+The system uses SQLite3 as the database engine.
+
+The database stores
+
+Registered voters  
+Candidate records  
+Encrypted ballots
+
+Thread safety is ensured using recursive mutex locks to prevent race conditions during concurrent access.
+
+
+# Cloud Deployment
+
+The project is deployed on Amazon Web Services to simulate a real world distributed election environment.
+
+# Compute Infrastructure
+
+Hosted on AWS EC2
+
+Instance type  
+t2.micro
+
+Operating system  
+Windows Server 2022
+
+
+# Network Security
+
+AWS Security Groups configured to allow TCP traffic only on the required port.
+
+Server port
+
+8080
+
+Traffic filtering ensures controlled access to the voting server.
+
+
+# Firewall Protection
+
+Additional protection implemented using Windows Defender Firewall rules.
+
+This creates a dual layer security model consisting of
+
+Cloud level firewall filtering  
+Host machine firewall filtering
+
+
+# Dependency Management
+
+OpenSSL cryptographic libraries are statically linked for reliable deployment on cloud infrastructure.
+
+Libraries used
+
+libcrypto  
+libssl
+
+
+# Technology Stack
+
+Programming Language  
+C++17
+
+Networking  
+Winsock2 API
+
+Cryptography  
+OpenSSL
+
+Database  
+SQLite3
+
+Concurrency  
+C++ Threads
+
+Build System  
+CMake
+
+Deployment Platform  
+AWS EC2
+
+
+# Build Instructions
+
+Clone the repository
+
+git clone https://github.com/YOUR_USERNAME/Secure-Voting-System.git
+
+Navigate into project directory
+
+cd Secure-Voting-System
+
+
+Generate CMake build files
+
+mkdir build
+
+cd build
+
+cmake ..
+
+
+Compile the project
+
+cmake --build . --config Release
+
+
+# Runtime Requirement
+
+Ensure the following OpenSSL runtime libraries are present in the executable directory
+
+libcrypto-3-x64.dll
+
+libssl-3-x64.dll
+
+
+# Usage
+
+# Start Server
+
+Run VotingServer.exe on the host machine or AWS instance.
+
+The server will initialize the enterprise election database and begin listening for incoming connections on port 8080.
+
+
+# Run Client
+
+Run VotingClient.exe.
+
+The client interface allows users to perform the following actions.
+
+Register a voter account  
+Login using voter credentials  
+Cast vote securely  
+Fetch candidate list from the server
+
+
+# Administrator Services
+
+Administrative functions include
+
+Viewing live election statistics  
+Managing candidate records  
+Resetting election database
+
+These actions require the master secret key verified by the server.
+
+
+# Learning Outcomes
+
+This project demonstrates practical experience with
+
+Systems programming in C++
+
+Low level socket networking
+
+Concurrent server architecture
+
+Cryptographic security implementation
+
+Database integration
+
+Cloud infrastructure deployment
+
+
+# Author
+
+Yuvraj Jha
+
+Computer Science Student  
+Vellore Institute of Technology
+
+This project was developed as a systems engineering demonstration of secure distributed application design.
